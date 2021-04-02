@@ -18,7 +18,7 @@
     {
       // Executable scripts should have a shebang
       "files": [
-        "bin/*.js"
+        "index.js"
       ],
       "rules": {
         "node/shebang": "off"

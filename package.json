@@ -1,18 +1,19 @@
 {
-  "name": "@kevinoid/project-template",
+  "name": "@kevinoid/openapi-transformer-cli",
   "version": "0.0.1",
-  "description": "A Node.js/npm project template with codecov, coveralls, ESLint, conventional-changelog, nyc, JSDoc, and mocha.",
+  "description": "Transform OpenAPI documents from the command line.",
   "keywords": [
-    "project-template",
-    "template"
+    "cli",
+    "openapi",
+    "swagger"
   ],
   "license": "MIT",
-  "homepage": "https://github.com/kevinoid/node-project-template",
-  "bugs": "https://github.com/kevinoid/node-project-template/issues",
+  "homepage": "https://github.com/kevinoid/openapi-transformer-cli",
+  "bugs": "https://github.com/kevinoid/openapi-transformer-cli/issues",
   "author": "Kevin Locke <kevin@kevinlocke.name>",
   "repository": {
     "type": "git",
-    "url": "https://github.com/kevinoid/node-project-template.git"
+    "url": "https://github.com/kevinoid/openapi-transformer-cli.git"
   },
   "type": "commonjs",
   "files": [
@@ -26,7 +27,7 @@
     ".": "./index.js"
   },
   "bin": {
-    "project-template": "bin/cmd.js"
+    "openapi-transformer": "index.js"
   },
   "//": "All scripts should run in POSIX sh and Windows cmd.exe",
   "scripts": {
@@ -52,7 +53,9 @@
     "version-deps": "npm install conventional-changelog-cli david depcheck git-branch-is hub-ci-status"
   },
   "dependencies": {
-    "yargs": "^16.0.3"
+    "commander": "^7.0.0",
+    "js-yaml": "^4.0.0",
+    "json-replace-exponentials": "^0.1.0"
   },
   "devDependencies": {
     "@kevinoid/eslint-config": "^16.0.0",
