@@ -96,7 +96,8 @@
   },
   "nyc": {
     "exclude": [
-      "test"
+      "test",
+      "test-lib"
     ]
   }
 }
