@@ -215,7 +215,8 @@ function main(args, options, exit) {
   openApiStream.setEncoding('utf8');
 
   const configStream = config === undefined ? undefined
-    : createReadStream(config, { encoding: 'utf8' });
+    : config === '-' ? options.stdin
+      : createReadStream(config, { encoding: 'utf8' });
 
   // eslint-disable-next-line promise/catch-or-return
   Promise.all([
