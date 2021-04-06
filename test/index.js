@@ -6,12 +6,15 @@
 'use strict';
 
 const assert = require('assert');
+const path = require('path');
 const { PassThrough } = require('stream');
 
 const main = require('../index.js');
 const packageJson = require('../package.json');
 
 const sharedArgs = ['node', 'openapi-transformer'];
+const asyncPath = path.resolve(__dirname, '../test-lib/async-transformer.js');
+const syncPath = path.resolve(__dirname, '../test-lib/sync-transformer.js');
 
 function getTestOptions() {
   return {
@@ -210,6 +213,119 @@ Options:
       done();
     });
     assert.strictEqual(result, undefined);
+    options.stdin.end('{}');
+  });
+
+  it('--transformer for sync with absolute path', (done) => {
+    const options = getTestOptions();
+    main(
+      [...sharedArgs, '--transformer', syncPath],
+      options,
+      (code) => {
+        assert.strictEqual(options.stderr.read(), null);
+        assert.deepStrictEqual(
+          JSON.parse(options.stdout.read()),
+          {
+            'x-transformers': [
+              ['sync-transformer'],
+            ],
+          },
+        );
+        assert.strictEqual(code, 0);
+        done();
+      },
+    );
+    options.stdin.end('{}');
+  });
+
+  it('--transformer for sync with relative path', (done) => {
+    const options = getTestOptions();
+    const syncRelPath = path.relative(process.cwd(), syncPath);
+    main(
+      [...sharedArgs, '--transformer', `.${path.sep}${syncRelPath}`],
+      options,
+      (code) => {
+        assert.strictEqual(options.stderr.read(), null);
+        assert.deepStrictEqual(
+          JSON.parse(options.stdout.read()),
+          {
+            'x-transformers': [
+              ['sync-transformer'],
+            ],
+          },
+        );
+        assert.strictEqual(code, 0);
+        done();
+      },
+    );
+    options.stdin.end('{}');
+  });
+
+  it('--transformer for async with absolute path', (done) => {
+    const options = getTestOptions();
+    main(
+      [...sharedArgs, '--transformer', asyncPath],
+      options,
+      (code) => {
+        assert.strictEqual(options.stderr.read(), null);
+        assert.deepStrictEqual(
+          JSON.parse(options.stdout.read()),
+          {
+            'x-transformers': [
+              ['async-transformer'],
+            ],
+          },
+        );
+        assert.strictEqual(code, 0);
+        done();
+      },
+    );
+    options.stdin.end('{}');
+  });
+
+  it('--transformer for async with relative path', (done) => {
+    const options = getTestOptions();
+    const asyncRelPath = path.relative(process.cwd(), asyncPath);
+    main(
+      [...sharedArgs, '--transformer', `.${path.sep}${asyncRelPath}`],
+      options,
+      (code) => {
+        assert.strictEqual(options.stderr.read(), null);
+        assert.deepStrictEqual(
+          JSON.parse(options.stdout.read()),
+          {
+            'x-transformers': [
+              ['async-transformer'],
+            ],
+          },
+        );
+        assert.strictEqual(code, 0);
+        done();
+      },
+    );
+    options.stdin.end('{}');
+  });
+
+  it('can combine multiple --transformer', (done) => {
+    const options = getTestOptions();
+    main(
+      [...sharedArgs, '--transformer', syncPath, '--transformer', asyncPath],
+      options,
+      (code) => {
+        assert.strictEqual(options.stderr.read(), null);
+        assert.deepStrictEqual(
+          JSON.parse(options.stdout.read()),
+          {
+            'x-transformers': [
+              ['sync-transformer'],
+              ['async-transformer'],
+            ],
+          },
+        );
+        assert.strictEqual(code, 0);
+        done();
+      },
+    );
     options.stdin.end('{}');
   });
 });
