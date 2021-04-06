@@ -108,7 +108,6 @@ Transform an OpenAPI document.
 Options:
   -c, --config <file>         JSON configuration file
   -t, --transformer <module>  transformer module to apply (repeatable)
-                              (default: [])
   -V, --version               output the version number
   -h, --help                  display help for command
 `,

@@ -159,6 +159,7 @@ function main(args, options, exit) {
     throw new TypeError('exit must be a function');
   }
 
+  const configsOrPromises = [];
   const command = new Command()
     .exitOverride()
     .configureOutput({
@@ -173,15 +174,24 @@ function main(args, options, exit) {
     .action(() => {})
     .description('Transform an OpenAPI document.')
     .option('-c, --config <file>', 'JSON configuration file')
+    .on('option:config', (configPath) => {
+      const configStream =
+        configPath === '-' ? options.stdin : createReadStream(configPath);
+      configStream.setEncoding('utf8');
+      configsOrPromises.push(readConfigFile(configStream));
+    })
     .option(
       '-t, --transformer <module>',
       'transformer module to apply (repeatable)',
-      (arg, previous) => {
-        previous.push(arg);
-        return previous;
-      },
-      [],
     )
+    .on('option:transformer', (transformer) => {
+      const lastConfig = configsOrPromises[configsOrPromises.length - 1];
+      if (lastConfig && lastConfig.transformers) {
+        lastConfig.transformers.push(transformer);
+      } else {
+        configsOrPromises.push({ transformers: [transformer] });
+      }
+    })
     .version(packageJson.version);
 
   try {
@@ -204,8 +214,6 @@ function main(args, options, exit) {
     files.push('-');
   }
 
-  const { config, transformer: transformers } = command.opts();
-
   function onWarning(errYaml) {
     options.stderr.write(`${errYaml}\n`);
   }
@@ -214,22 +222,17 @@ function main(args, options, exit) {
     files[0] === '-' ? options.stdin : createReadStream(files[0]);
   openApiStream.setEncoding('utf8');
 
-  const configStream = config === undefined ? undefined
-    : config === '-' ? options.stdin
-      : createReadStream(config, { encoding: 'utf8' });
-
   // eslint-disable-next-line promise/catch-or-return
   Promise.all([
     readJsonOrYaml(openApiStream, onWarning),
-    configStream ? readConfigFile(configStream) : undefined,
+    ...configsOrPromises,
   ])
-    .then(([openApi, fileOptions]) => {
-      if (fileOptions && fileOptions.transformers) {
-        transformers.push(...fileOptions.transformers);
-      }
-
-      return applyTransformers(transformers, openApi);
-    })
+    .then(([openApi, ...configs]) => applyTransformers(
+      // TODO [engine:node@>=11]: Use Array#flatMap()
+      // eslint-disable-next-line unicorn/prefer-spread
+      [].concat(configs.map((c) => c.transformers)),
+      openApi,
+    ))
     .then((openApi) => new Promise((resolve, reject) => {
       const json =
         jsonReplaceExponentials(JSON.stringify(openApi, undefined, 2));
