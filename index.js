@@ -87,9 +87,9 @@ async function readConfigFile(stream) {
 
   for (const transformer of transformers) {
     if (Array.isArray(transformer)) {
-      if (transformer.length === 0 || transformer.length > 2) {
+      if (transformer.length === 0) {
         throw new Error(
-          'config.transformers tuples must have 1 or 2 elements',
+          'config.transformers tuples must at least 1 element',
         );
       }
 
@@ -117,10 +117,10 @@ async function readConfigFile(stream) {
 }
 
 function createTransformer(config) {
-  const [name, options] = Array.isArray(config) ? config : [config];
+  const [name, ...options] = Array.isArray(config) ? config : [config];
   // eslint-disable-next-line global-require, import/no-dynamic-require
   const Transformer = require(name);
-  return new Transformer(options);
+  return new Transformer(...options);
 }
 
 async function applyTransformers(transformers, openApi) {
