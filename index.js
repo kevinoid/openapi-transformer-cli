@@ -11,6 +11,7 @@ const { Command } = require('commander');
 const { createReadStream } = require('fs');
 const { load: loadYaml } = require('js-yaml');
 const jsonReplaceExponentials = require('json-replace-exponentials');
+const path = require('path');
 const { debuglog } = require('util');
 
 const packageJson = require('./package.json');
@@ -113,20 +114,32 @@ async function readConfigFile(stream) {
     }
   }
 
+  config.configFilePath = stream.path;
+
   return config;
 }
 
-function createTransformer(config) {
-  const [name, ...options] = Array.isArray(config) ? config : [config];
-  // eslint-disable-next-line global-require, import/no-dynamic-require
-  const Transformer = require(name);
-  return new Transformer(...options);
+function createTransformersForConfig({ configFilePath, transformers }) {
+  const searchPath =
+    configFilePath ? path.dirname(path.resolve(configFilePath))
+      : process.cwd();
+  const resolveOptions = { paths: [searchPath] };
+  return transformers.map((transformer) => {
+    const [name, ...options] =
+      Array.isArray(transformer) ? transformer : [transformer];
+    const resolved = require.resolve(name, resolveOptions);
+    // eslint-disable-next-line global-require, import/no-dynamic-require
+    const Transformer = require(resolved);
+    return new Transformer(...options);
+  });
 }
 
-async function applyTransformers(transformers, openApi) {
-  for (const transformer of transformers.map(createTransformer)) {
-    // eslint-disable-next-line no-await-in-loop
-    openApi = await transformer.transformOpenApi(openApi);
+async function applyTransformers(configs, openApi) {
+  for (const transformers of configs.map(createTransformersForConfig)) {
+    for (const transformer of transformers) {
+      // eslint-disable-next-line no-await-in-loop
+      openApi = await transformer.transformOpenApi(openApi);
+    }
   }
 
   return openApi;
@@ -227,12 +240,7 @@ function main(args, options, exit) {
     readJsonOrYaml(openApiStream, onWarning),
     ...configsOrPromises,
   ])
-    .then(([openApi, ...configs]) => applyTransformers(
-      // TODO [engine:node@>=11]: Use Array#flatMap()
-      // eslint-disable-next-line unicorn/prefer-spread
-      [].concat(configs.map((c) => c.transformers)),
-      openApi,
-    ))
+    .then(([openApi, ...configs]) => applyTransformers(configs, openApi))
     .then((openApi) => new Promise((resolve, reject) => {
       const json =
         jsonReplaceExponentials(JSON.stringify(openApi, undefined, 2));
