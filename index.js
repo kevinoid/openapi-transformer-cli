@@ -99,14 +99,6 @@ async function readConfigFile(stream) {
           'config.transformers tuple first item must be a string',
         );
       }
-
-      if (typeof transformer[1] !== 'object'
-        || transformer[1] === null
-        || Array.isArray(transformer[1])) {
-        throw new TypeError(
-          'config.transformers tuple second item must be an object',
-        );
-      }
     } else if (typeof transformer !== 'string') {
       throw new TypeError(
         'config.transformers items must be strings or Arrays',
