@@ -1,0 +1,41 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "OpenApi 3 example",
+    "version": "1.0.0"
+  },
+  "components": {
+    "schemas": {
+      "ExampleObject": {
+        "type": "object",
+        "properties": {
+          "prop1": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/example": {
+      "get": {
+        "operationId": "getExample",
+        "responses": {
+          "default": {
+            "description": "Get example object",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ExampleObject"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
