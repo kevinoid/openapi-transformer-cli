@@ -14,7 +14,12 @@ const packageJson = require('../package.json');
 
 const sharedArgs = ['node', 'openapi-transformer'];
 const asyncPath = path.resolve(__dirname, '../test-lib/async-transformer.js');
+const openapiJsonPath = path.resolve(__dirname, '../test-lib/openapi.json');
+const openapiYamlPath = path.resolve(__dirname, '../test-lib/openapi.yaml');
 const syncPath = path.resolve(__dirname, '../test-lib/sync-transformer.js');
+
+// eslint-disable-next-line import/no-dynamic-require
+const openapiJson = require(openapiJsonPath);
 
 function getTestOptions() {
   return {
@@ -147,6 +152,20 @@ Options:
     options.stdin.end('{}');
   });
 
+  it('transforms JSON file to stdout', (done) => {
+    const options = getTestOptions();
+    const result = main([...sharedArgs, openapiJsonPath], options, (code) => {
+      assert.strictEqual(options.stderr.read(), null);
+      assert.deepStrictEqual(
+        JSON.parse(options.stdout.read()),
+        openapiJson,
+      );
+      assert.strictEqual(code, 0);
+      done();
+    });
+    assert.strictEqual(result, undefined);
+  });
+
   it('transforms YAML stdin to stdout by default', (done) => {
     const options = getTestOptions();
     const result = main(sharedArgs, options, (code) => {
@@ -157,6 +176,20 @@ Options:
     });
     assert.strictEqual(result, undefined);
     options.stdin.end('openapi: "3.0.2"');
+  });
+
+  it('transforms YAML file to stdout', (done) => {
+    const options = getTestOptions();
+    const result = main([...sharedArgs, openapiYamlPath], options, (code) => {
+      assert.strictEqual(options.stderr.read(), null);
+      assert.deepStrictEqual(
+        JSON.parse(options.stdout.read()),
+        openapiJson,
+      );
+      assert.strictEqual(code, 0);
+      done();
+    });
+    assert.strictEqual(result, undefined);
   });
 
   it('transforms stdin split across multiple reads', (done) => {
