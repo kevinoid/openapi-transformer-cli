@@ -14,6 +14,7 @@ const packageJson = require('../package.json');
 
 const sharedArgs = ['node', 'openapi-transformer'];
 const asyncPath = path.resolve(__dirname, '../test-lib/async-transformer.js');
+const configPath = path.resolve(__dirname, '../test-lib/config.json');
 const openapiJsonPath = path.resolve(__dirname, '../test-lib/openapi.json');
 const openapiYamlPath = path.resolve(__dirname, '../test-lib/openapi.yaml');
 const syncPath = path.resolve(__dirname, '../test-lib/sync-transformer.js');
@@ -360,5 +361,85 @@ Options:
       },
     );
     options.stdin.end('{}');
+  });
+
+  it('--config with absolute path', (done) => {
+    const options = getTestOptions();
+    main(
+      [...sharedArgs, '--config', configPath],
+      options,
+      (code) => {
+        assert.strictEqual(options.stderr.read(), null);
+        assert.deepStrictEqual(
+          JSON.parse(options.stdout.read()),
+          {
+            'x-transformers': [
+              ['sync-transformer'],
+              ['async-transformer', 'asyncArg'],
+              ['sync-transformer', 'syncArg'],
+            ],
+          },
+        );
+        assert.strictEqual(code, 0);
+        done();
+      },
+    );
+    options.stdin.end('{}');
+  });
+
+  it('--config with relative path', (done) => {
+    const options = getTestOptions();
+    const configRelPath = path.relative(process.cwd(), configPath);
+    main(
+      [...sharedArgs, '--config', configRelPath],
+      options,
+      (code) => {
+        assert.strictEqual(options.stderr.read(), null);
+        assert.deepStrictEqual(
+          JSON.parse(options.stdout.read()),
+          {
+            'x-transformers': [
+              ['sync-transformer'],
+              ['async-transformer', 'asyncArg'],
+              ['sync-transformer', 'syncArg'],
+            ],
+          },
+        );
+        assert.strictEqual(code, 0);
+        done();
+      },
+    );
+    options.stdin.end('{}');
+  });
+
+  it('--config from stdin', (done) => {
+    const options = getTestOptions();
+    main(
+      [...sharedArgs, '--config', '-', openapiJsonPath],
+      options,
+      (code) => {
+        assert.strictEqual(options.stderr.read(), null);
+        assert.deepStrictEqual(
+          JSON.parse(options.stdout.read()),
+          {
+            ...openapiJson,
+            'x-transformers': [
+              ['sync-transformer'],
+              ['async-transformer', 'asyncArg'],
+              ['sync-transformer', 'syncArg'],
+            ],
+          },
+        );
+        assert.strictEqual(code, 0);
+        done();
+      },
+    );
+    options.stdin.end(JSON.stringify({
+      transformers: [
+        syncPath,
+        [asyncPath, 'asyncArg'],
+        [syncPath, 'syncArg'],
+      ],
+    }));
   });
 });
