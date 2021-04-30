@@ -43,6 +43,13 @@ npm install @kevinoid/openapi-transformer-cli
 ```
 
 
+## Configuration
+
+Configuration files are JSON files which contain a
+[`OpenapiTransformerCliOptions`](https://kevinoid.github.io/openapi-transformer-cli/api/module-openapi-transformer-cli.html#~OpenapiTransformerCliOptions)
+object.
+
+
 ## Contributing
 
 Contributions are appreciated.  Contributors agree to abide by the [Contributor
