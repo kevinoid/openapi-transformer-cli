@@ -18,6 +18,36 @@ const packageJson = require('./package.json');
 
 const debug = debuglog('openapi-transformer-cli');
 
+/** OpenAPI Transformer Name and Arguments
+ *
+ * The name or path of an OpenAPI Transformer module.  The name will be
+ * resolved (using <a
+ * href="https://nodejs.org/api/esm.html#esm_import_meta_resolve_specifier_parent"><code>import.meta.resolve()</code></a>
+ * with fallback to <a
+ * href="https://nodejs.org/api/modules.html#modules_require_resolve_request_options><code>require.resolve()</code></a>)
+ * relative to the configuration file and <code>import()</code>ed.  The
+ * default export (<code>module.exports</code> for CommonJS) will be called
+ * using <code>new</code>.  <code>#transformOpenApi()</code> will be called
+ * on the returned value with the document to transform as its only argument.
+ * One way to satisfy the requirements is to create a module which
+ * default-exports class that extends {@link openapi-transformer-base}.
+ *
+ * Alternatively, an Array can be used.  In this case, the first element of
+ * the array is the name or path, as described above, and any subsequent
+ * elements are passed to the constructor (e.g. options).
+ *
+ * @typedef {string|!Array} OpenapiTransformerNameArgs
+ */
+
+/** OpenAPI Transformer CLI Options
+ *
+ * @typedef {{
+ *   transformers: !Array<!OpenapiTransformerNameArgs>=
+ * }} OpenapiTransformerCliOptions
+ * @property {!Array<OpenapiTransformerNameArgs>=} transformers Array of
+ * OpenAPI Transformers to apply, in order of application.
+ */
+
 function readString(stream) {
   // Converting Buffer to string in .on('data') breaks split multi-byte chars.
   if (!stream.readableEncoding) {
