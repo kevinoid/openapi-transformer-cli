@@ -49,14 +49,19 @@ const debug = debuglog('openapi-transformer-cli');
  */
 
 function readString(stream) {
-  // Converting Buffer to string in .on('data') breaks split multi-byte chars.
-  if (!stream.readableEncoding) {
-    throw new Error('stream must have a readableEncoding');
-  }
-
   return new Promise((resolve, reject) => {
     let str = '';
-    stream.on('data', (data) => { str += data; });
+    stream.on('data', (data) => {
+      // Converting Buffer to string here could break multi-byte chars.
+      // It's also inefficient.  Require callers to .setEncoding().
+      if (typeof data !== 'string') {
+        stream.destroy(new TypeError(
+          `expected string, got ${typeof data} from stream`,
+        ));
+      }
+
+      str += data;
+    });
     stream.once('error', reject);
     stream.once('end', () => resolve(str));
   });
