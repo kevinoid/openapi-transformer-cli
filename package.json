@@ -58,6 +58,7 @@
     "json-replace-exponentials": "^0.1.0"
   },
   "devDependencies": {
+    "@kevinoid/assert-shim": "^0.1.0",
     "@kevinoid/eslint-config": "^17.0.0",
     "c8": "^7.0.0",
     "codecov": "^3.0.0",

@@ -5,7 +5,7 @@
 
 'use strict';
 
-const assert = require('assert');
+const assert = require('@kevinoid/assert-shim');
 const path = require('path');
 const { PassThrough } = require('stream');
 
