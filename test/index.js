@@ -307,6 +307,17 @@ Options:
     assert.strictEqual(code, 0);
   });
 
+  // This works with require.resolve everywhere.
+  // With import.meta.resolve() it works on Unix-likes and fails on Windows:
+  // Error [ERR_UNSUPPORTED_ESM_URL_SCHEME]: Only file and data URLs are
+  // supported by the default ESM loader. On Windows, absolute paths must be
+  // valid file:// URLs. Received protocol 'c:'
+  //
+  // Difficult to test.  Skip for now.
+  xit('--transformer with absolute path behaves like resolve()', async () => {
+    // TODO
+  });
+
   it('--transformer with relative path (non-specifier) fails', async () => {
     const options = getTestOptions();
     options.stdin.end('{}');
