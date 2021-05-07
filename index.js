@@ -18,7 +18,7 @@ const debug = debuglog('openapi-transformer-cli');
 
 /** OpenAPI Transformer Name and Arguments
  *
- * The name or path of an OpenAPI Transformer module.  The name will be
+ * The module specifier of an OpenAPI Transformer module.  The name will be
  * resolved (using <a
  * href="https://nodejs.org/api/esm.html#esm_import_meta_resolve_specifier_parent"><code>import.meta.resolve()</code></a>
  * with fallback to <a
