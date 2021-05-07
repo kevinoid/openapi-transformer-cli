@@ -3,10 +3,9 @@
  * @license MIT
  */
 
-'use strict';
-
-module.exports =
-class SyncTransformer {
+// Dynamically imported from tests
+// eslint-disable-next-line import/no-unused-modules
+export default class SyncTransformer {
   constructor(...args) {
     this.args = args;
   }
@@ -26,4 +25,4 @@ class SyncTransformer {
       ],
     };
   }
-};
+}

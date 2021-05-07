@@ -1,20 +1,17 @@
-#!/usr/bin/env node
 /**
  * @copyright Copyright 2016-2021 Kevin Locke <kevin@kevinlocke.name>
  * @license MIT
  * @module openapi-transformer-cli
  */
 
-'use strict';
-
-const { Command } = require('commander');
-const { createReadStream } = require('fs');
-const { load: loadYaml } = require('js-yaml');
-const jsonReplaceExponentials = require('json-replace-exponentials');
-const path = require('path');
-const { debuglog } = require('util');
-
-const packageJson = require('./package.json');
+import { Command } from 'commander';
+// TODO [engine:node@>=14]: import { readFile } from 'fs/promises'
+import { createReadStream } from 'fs';
+import { load as loadYaml } from 'js-yaml';
+import jsonReplaceExponentials from 'json-replace-exponentials';
+import { createRequire } from 'module';
+import path from 'path';
+import { debuglog } from 'util';
 
 const debug = debuglog('openapi-transformer-cli');
 
@@ -146,43 +143,110 @@ async function readConfigFile(stream) {
   return config;
 }
 
+function makeResolver() {
+  const { resolve } = createRequire(import.meta.url);
+  return (id, parent) => resolve(
+    id,
+    parent ? { paths: [path.dirname(parent)] } : undefined,
+  );
+}
+
+// FIXME: require.resolve() resolves differently from import.meta.resolve()
+// in the presence of conditional exports
+// https://nodejs.org/api/packages.html#packages_conditional_exports
+// Could use resolve, if/when it supports package.json#exports:
+// https://github.com/browserify/resolve/issues/222
+// https://github.com/browserify/resolve/pull/224
+const resolveTransformer = import.meta.resolve || makeResolver();
+
 function createTransformersForConfig({ configFilePath, transformers }) {
-  const searchPath =
-    configFilePath ? path.dirname(path.resolve(configFilePath))
-      : process.cwd();
-  const resolveOptions = { paths: [searchPath] };
-  return transformers.map((transformer) => {
+  const resolveParent =
+    configFilePath ? path.resolve(configFilePath) : undefined;
+  return transformers.map(async (transformer) => {
     const [name, ...options] =
       Array.isArray(transformer) ? transformer : [transformer];
-    const resolved = require.resolve(name, resolveOptions);
-    // eslint-disable-next-line global-require, import/no-dynamic-require
-    const Transformer = require(resolved);
+    const resolved = await resolveTransformer(name, resolveParent);
+    // https://github.com/mysticatea/eslint-plugin-node/pull/256
+    // eslint-disable-next-line node/no-unsupported-features/es-syntax
+    const { default: Transformer } = await import(resolved);
     return new Transformer(...options);
   });
 }
 
 async function applyTransformers(configs, openApi) {
-  for (const transformers of configs.map(createTransformersForConfig)) {
-    for (const transformer of transformers) {
-      // eslint-disable-next-line no-await-in-loop
-      openApi = await transformer.transformOpenApi(openApi);
-    }
+  const transformers =
+    await Promise.all(configs.flatMap(createTransformersForConfig));
+
+  for (const transformer of transformers) {
+    // eslint-disable-next-line no-await-in-loop
+    openApi = await transformer.transformOpenApi(openApi);
   }
 
   return openApi;
 }
 
+/** Option parser to count the number of occurrences of the option.
+ *
+ * @private
+ * @param {boolean|string} optarg Argument passed to option (ignored).
+ * @param {number=} previous Previous value of option (counter).
+ * @returns {number} previous + 1.
+ */
+function countOption(optarg, previous) {
+  return (previous || 0) + 1;
+}
+
+/** Write to a stream.Writable asynchronously.
+ *
+ * @private
+ * @param {!stream.Writable} stream Stream to write to.
+ * @param {*} chunk Value to write to stream.
+ * @param {string} encoding Encoding in which to write chunk.
+ * @returns {!Promise} Promise for write completion or error.
+ */
+function streamWrite(stream, chunk, encoding) {
+  return new Promise((resolve, reject) => {
+    // Note: write() callback not guaranteed on error.
+    // Use error event to ensure errors are handled.
+    stream.once('error', reject);
+    stream.write(chunk, encoding, (err) => {
+      if (!err) {
+        resolve();
+        stream.removeListener('error', reject);
+      }
+    });
+  });
+}
+
+/** Options for command entry points.
+ *
+ * @typedef {{
+ *   env: !object<string,string>,
+ *   stdin: !module:stream.Readable,
+ *   stdout: !module:stream.Writable,
+ *   stderr: !module:stream.Writable
+ * }} CommandOptions
+ * @property {!object<string,string>} env Environment variables.
+ * @property {!module:stream.Readable} stdin Stream from which input is read.
+ * @property {!module:stream.Writable} stdout Stream to which output is
+ * written.
+ * @property {!module:stream.Writable} stderr Stream to which errors and
+ * non-output status messages are written.
+ */
+// const CommandOptions;
+
 /** Entry point for this command.
  *
  * @param {!Array<string>} args Command-line arguments.
- * @param {!object} options Options.
- * @param {function(number)} exit Callback with exit code.
+ * @param {!CommandOptions} options Options.
+ * @returns {!Promise<number>} Promise for exit code.  Only rejected for
+ * arguments with invalid type (or args.length < 2).
  */
-module.exports =
-function main(args, options, exit) {
+export default async function openapiTransformerMain(args, options) {
   if (!Array.isArray(args) || args.length < 2) {
-    throw new TypeError('args must be an Array with at least 2 elements');
+    throw new TypeError('args must be an Array with at least 2 items');
   }
+
   if (!options || typeof options !== 'object') {
     throw new TypeError('options must be an object');
   }
@@ -194,9 +258,6 @@ function main(args, options, exit) {
   }
   if (!options.stderr || typeof options.stderr.write !== 'function') {
     throw new TypeError('options.stderr must be a stream.Writable');
-  }
-  if (typeof exit !== 'function') {
-    throw new TypeError('exit must be a function');
   }
 
   const configsOrPromises = [];
@@ -220,6 +281,7 @@ function main(args, options, exit) {
       configStream.setEncoding('utf8');
       configsOrPromises.push(readConfigFile(configStream));
     })
+    .option('-q, --quiet', 'Print less output', countOption)
     .option(
       '-t, --transformer <module>',
       'transformer module to apply (repeatable)',
@@ -232,15 +294,28 @@ function main(args, options, exit) {
         configsOrPromises.push({ transformers: [transformer] });
       }
     })
-    .version(packageJson.version);
+    .option('-v, --verbose', 'Print more output', countOption)
+    // TODO: Replace with .version(packageJson.version) loaded as JSON module
+    // https://github.com/nodejs/node/issues/37141
+    .option('-V, --version', 'output the version number');
 
   try {
     command.parse(args);
   } catch (errParse) {
-    const exitCode =
-      errParse.exitCode !== undefined ? errParse.exitCode : 1;
-    process.nextTick(exit, exitCode);
-    return;
+    // Note: Error message already printed to stderr by Commander
+    return errParse.exitCode !== undefined ? errParse.exitCode : 1;
+  }
+
+  const argOpts = command.opts();
+
+  if (argOpts.version) {
+    const packageJsonStream = createReadStream(
+      new URL('package.json', import.meta.url),
+      { encoding: 'utf8' },
+    );
+    const packageJson = await readJson(packageJsonStream);
+    options.stdout.write(`${packageJson.version}\n`);
+    return 0;
   }
 
   const files = command.args;
@@ -262,36 +337,16 @@ function main(args, options, exit) {
     files[0] === '-' ? options.stdin : createReadStream(files[0]);
   openApiStream.setEncoding('utf8');
 
-  // eslint-disable-next-line promise/catch-or-return
-  Promise.all([
-    readJsonOrYaml(openApiStream, onWarning),
-    ...configsOrPromises,
-  ])
-    .then(([openApi, ...configs]) => applyTransformers(configs, openApi))
-    .then((openApi) => new Promise((resolve, reject) => {
-      const json =
-        jsonReplaceExponentials(JSON.stringify(openApi, undefined, 2));
-      options.stdout.once('error', reject);
-      options.stdout.write(
-        `${json}\n`,
-        (err) => { if (!err) { resolve(); } },
-      );
-    }))
-    .then(
-      () => 0,
-      (err) => {
-        options.stderr.write(`${err}\n`);
-        return 1;
-      },
-    )
-    // Note: nextTick for unhandledException (like util.callbackify)
-    .then((exitCode) => process.nextTick(exit, exitCode));
-};
-
-if (require.main === module) {
-  // This file was invoked directly.
-  // Note:  Could pass process.exit as callback to force immediate exit.
-  module.exports(process.argv, process, (exitCode) => {
-    process.exitCode = exitCode;
-  });
+  try {
+    const openApi = await readJsonOrYaml(openApiStream, onWarning);
+    const configs = await Promise.all(configsOrPromises);
+    const newOpenApi = await applyTransformers(configs, openApi);
+    const json =
+      jsonReplaceExponentials(JSON.stringify(newOpenApi, undefined, 2));
+    await streamWrite(options.stdout, `${json}\n`);
+    return 0;
+  } catch (err) {
+    options.stderr.write(`${err}\n`);
+    return 1;
+  }
 }
