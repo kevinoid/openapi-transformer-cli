@@ -3,7 +3,7 @@
  * @license MIT
  */
 
-import assert from 'assert';
+import assert, { AssertionError } from 'assert';
 // TODO [engine:node@>=14]: import { readFile } from 'fs/promises'
 import { promises as fsPromises } from 'fs';
 import path from 'path';
@@ -316,11 +316,26 @@ Options:
       [...sharedArgs, '--transformer', syncRelPath],
       options,
     );
-    assert.match(
-      options.stderr.read(),
-      // eslint-disable-next-line max-len
-      /^Error( \[ERR_MODULE_NOT_FOUND\])?: Cannot find (module|package) 'test-lib/,
-    );
+    const stderrStr = options.stderr.read();
+    const prefixes = [
+      // require.resolve
+      `Error: Cannot find module '${syncRelPath}'`,
+      // import.meta.resolve
+      `Error [ERR_MODULE_NOT_FOUND]: Cannot find package '${
+        syncRelPath.split('/')[0]}'`,
+      // import.meta.resolve on Windows
+      `TypeError [ERR_INVALID_MODULE_SPECIFIER]: Invalid module "${
+        syncRelPath}" is not a valid package name`,
+    ];
+    if (stderrStr === null
+      || !prefixes.some((prefix) => stderrStr.startsWith(prefix))) {
+      throw new AssertionError({
+        message: 'Expected stderr to start with a known error message',
+        actual: stderrStr,
+        expected: prefixes.join('\n'),
+        operator: 'startsWith',
+      });
+    }
     assert.strictEqual(options.stdout.read(), null);
     assert.strictEqual(code, 1);
   });
