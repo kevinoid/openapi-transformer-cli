@@ -147,7 +147,7 @@ async function readConfigFile(stream) {
 function makeResolver() {
   const { resolve } = createRequire(import.meta.url);
   return (id, parent) => pathToFileURL(resolve(
-    id,
+    id.startsWith('file:') ? fileURLToPath(id) : id,
     parent ? { paths: [path.dirname(fileURLToPath(parent))] } : undefined,
   )).href;
 }

@@ -7,24 +7,27 @@ import assert from 'assert';
 // TODO [engine:node@>=14]: import { readFile } from 'fs/promises'
 import { promises as fsPromises } from 'fs';
 import path from 'path';
+import RelateUrl from 'relateurl';
 import { PassThrough } from 'stream';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 
 import main from '../index.js';
 
 const { readFile } = fsPromises;
 
 const sharedArgs = ['node', 'openapi-transformer'];
-const asyncPath =
-  fileURLToPath(new URL('../test-lib/async-transformer.js', import.meta.url));
-const configPath =
-  fileURLToPath(new URL('../test-lib/config.json', import.meta.url));
-const openapiJsonPath =
-  fileURLToPath(new URL('../test-lib/openapi.json', import.meta.url));
-const openapiYamlPath =
-  fileURLToPath(new URL('../test-lib/openapi.yaml', import.meta.url));
-const syncPath =
-  fileURLToPath(new URL('../test-lib/sync-transformer.js', import.meta.url));
+const asyncPathUrl =
+  new URL('../test-lib/async-transformer.js', import.meta.url);
+const configPathUrl = new URL('../test-lib/config.json', import.meta.url);
+const configPath = fileURLToPath(configPathUrl);
+const openapiJsonPathUrl =
+  new URL('../test-lib/openapi.json', import.meta.url);
+const openapiJsonPath = fileURLToPath(openapiJsonPathUrl);
+const openapiYamlPathUrl =
+  new URL('../test-lib/openapi.yaml', import.meta.url);
+const openapiYamlPath = fileURLToPath(openapiYamlPathUrl);
+const syncPathUrl =
+  new URL('../test-lib/sync-transformer.js', import.meta.url);
 
 // TODO: Load as JSON module once natively supported
 // https://github.com/nodejs/node/issues/37141
@@ -34,6 +37,21 @@ const openapiJsonPromise =
 const packageJsonPromise =
   readFile(new URL('../package.json', import.meta.url), { encoding: 'utf8' })
     .then(JSON.parse);
+
+/** Convert a file: URL to a module specifier relative to process.cwd()
+ *
+ * @private
+ * @param {string} moduleUrl Module file: URL, as a string.
+ * @returns {string} Module specifier for moduleUrl relative to process.cwd().
+ */
+function toRelativeModSpec(moduleUrl) {
+  const relUrl = RelateUrl.relate(
+    `${pathToFileURL(process.cwd())}/`,
+    moduleUrl,
+    { output: RelateUrl.PATH_RELATIVE },
+  );
+  return relUrl[0] === '.' ? relUrl : `./${relUrl}`;
+}
 
 function getTestOptions() {
   return {
@@ -253,11 +271,11 @@ Options:
     assert.strictEqual(code, 0);
   });
 
-  it('--transformer for sync with absolute path', async () => {
+  it('--transformer for sync with file: URL', async () => {
     const options = getTestOptions();
     options.stdin.end('{}');
     const code =
-      await main([...sharedArgs, '--transformer', syncPath], options);
+      await main([...sharedArgs, '--transformer', syncPathUrl.href], options);
     assert.strictEqual(options.stderr.read(), null);
     assert.deepStrictEqual(
       JSON.parse(options.stdout.read()),
@@ -270,12 +288,11 @@ Options:
     assert.strictEqual(code, 0);
   });
 
-  it('--transformer for sync with relative path', async () => {
+  it('--transformer for sync with relative specifier', async () => {
     const options = getTestOptions();
     options.stdin.end('{}');
-    const syncRelPath = path.relative(process.cwd(), syncPath);
     const code = await main(
-      [...sharedArgs, '--transformer', `.${path.sep}${syncRelPath}`],
+      [...sharedArgs, '--transformer', toRelativeModSpec(syncPathUrl.href)],
       options,
     );
     assert.strictEqual(options.stderr.read(), null);
@@ -290,11 +307,29 @@ Options:
     assert.strictEqual(code, 0);
   });
 
-  it('--transformer for async with absolute path', async () => {
+  it('--transformer with relative path (non-specifier) fails', async () => {
+    const options = getTestOptions();
+    options.stdin.end('{}');
+    const syncRelPath =
+      path.relative(process.cwd(), fileURLToPath(syncPathUrl));
+    const code = await main(
+      [...sharedArgs, '--transformer', syncRelPath],
+      options,
+    );
+    assert.match(
+      options.stderr.read(),
+      // eslint-disable-next-line max-len
+      /^Error( \[ERR_MODULE_NOT_FOUND\])?: Cannot find (module|package) 'test-lib/,
+    );
+    assert.strictEqual(options.stdout.read(), null);
+    assert.strictEqual(code, 1);
+  });
+
+  it('--transformer for async with file: URL', async () => {
     const options = getTestOptions();
     options.stdin.end('{}');
     const code =
-      await main([...sharedArgs, '--transformer', asyncPath], options);
+      await main([...sharedArgs, '--transformer', asyncPathUrl.href], options);
     assert.strictEqual(options.stderr.read(), null);
     assert.deepStrictEqual(
       JSON.parse(options.stdout.read()),
@@ -307,12 +342,11 @@ Options:
     assert.strictEqual(code, 0);
   });
 
-  it('--transformer for async with relative path', async () => {
+  it('--transformer for async with relative specifier', async () => {
     const options = getTestOptions();
     options.stdin.end('{}');
-    const asyncRelPath = path.relative(process.cwd(), asyncPath);
     const code = await main(
-      [...sharedArgs, '--transformer', `.${path.sep}${asyncRelPath}`],
+      [...sharedArgs, '--transformer', toRelativeModSpec(asyncPathUrl.href)],
       options,
     );
     assert.strictEqual(options.stderr.read(), null);
@@ -331,7 +365,13 @@ Options:
     const options = getTestOptions();
     options.stdin.end('{}');
     const code = await main(
-      [...sharedArgs, '--transformer', syncPath, '--transformer', asyncPath],
+      [
+        ...sharedArgs,
+        '--transformer',
+        syncPathUrl.href,
+        '--transformer',
+        asyncPathUrl.href,
+      ],
       options,
     );
     assert.strictEqual(options.stderr.read(), null);
@@ -392,9 +432,9 @@ Options:
     const options = getTestOptions();
     options.stdin.end(JSON.stringify({
       transformers: [
-        syncPath,
-        [asyncPath, 'asyncArg'],
-        [syncPath, 'syncArg'],
+        syncPathUrl.href,
+        [asyncPathUrl.href, 'asyncArg'],
+        [syncPathUrl.href, 'syncArg'],
       ],
     }));
     const code =

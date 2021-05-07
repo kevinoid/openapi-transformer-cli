@@ -74,6 +74,7 @@
     "jsdoc": "^3.6.0",
     "mocha": "^8.3.0",
     "nodecat": "^2.0.0",
+    "relateurl": "^0.2.7",
     "rimraf": "^3.0.0"
   },
   "engines": {
