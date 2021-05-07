@@ -11,6 +11,7 @@ import { load as loadYaml } from 'js-yaml';
 import jsonReplaceExponentials from 'json-replace-exponentials';
 import { createRequire } from 'module';
 import path from 'path';
+import { fileURLToPath, pathToFileURL } from 'url';
 import { debuglog } from 'util';
 
 const debug = debuglog('openapi-transformer-cli');
@@ -145,10 +146,10 @@ async function readConfigFile(stream) {
 
 function makeResolver() {
   const { resolve } = createRequire(import.meta.url);
-  return (id, parent) => resolve(
+  return (id, parent) => pathToFileURL(resolve(
     id,
-    parent ? { paths: [path.dirname(parent)] } : undefined,
-  );
+    parent ? { paths: [path.dirname(fileURLToPath(parent))] } : undefined,
+  )).href;
 }
 
 // FIXME: require.resolve() resolves differently from import.meta.resolve()
@@ -161,7 +162,8 @@ const resolveTransformer = import.meta.resolve || makeResolver();
 
 function createTransformersForConfig({ configFilePath, transformers }) {
   const resolveParent =
-    configFilePath ? path.resolve(configFilePath) : undefined;
+    configFilePath ? pathToFileURL(path.resolve(configFilePath)).href
+      : undefined;
   return transformers.map(async (transformer) => {
     const [name, ...options] =
       Array.isArray(transformer) ? transformer : [transformer];
