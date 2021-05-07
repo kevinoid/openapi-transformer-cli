@@ -4,7 +4,7 @@
  * @license MIT
  */
 
-import main from '../cli.js';
+import main from '../index.js';
 
 // This file was invoked directly.
 // Note:  Could pass process.exit as callback to force immediate exit.
