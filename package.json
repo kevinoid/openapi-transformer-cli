@@ -56,7 +56,8 @@
   "dependencies": {
     "commander": "^7.0.0",
     "js-yaml": "^4.0.0",
-    "json-replace-exponentials": "^0.1.0"
+    "json-replace-exponentials": "^0.1.0",
+    "strip-json-comments": "^3.1.1"
   },
   "devDependencies": {
     "@kevinoid/assert-shim": "^0.1.0",

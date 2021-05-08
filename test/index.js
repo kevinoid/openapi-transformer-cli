@@ -20,6 +20,9 @@ const asyncPathUrl =
   new URL('../test-lib/async-transformer.js', import.meta.url);
 const configPathUrl = new URL('../test-lib/config.json', import.meta.url);
 const configPath = fileURLToPath(configPathUrl);
+const configCommentPathUrl =
+  new URL('../test-lib/config-commented.json', import.meta.url);
+const configCommentPath = fileURLToPath(configCommentPathUrl);
 const openapiJsonPathUrl =
   new URL('../test-lib/openapi.json', import.meta.url);
 const openapiJsonPath = fileURLToPath(openapiJsonPathUrl);
@@ -470,6 +473,25 @@ Options:
       JSON.parse(options.stdout.read()),
       {
         ...await openapiJsonPromise,
+        'x-transformers': [
+          ['sync-transformer'],
+          ['async-transformer', 'asyncArg'],
+          ['sync-transformer', 'syncArg'],
+        ],
+      },
+    );
+    assert.strictEqual(code, 0);
+  });
+
+  it('--config with comments', async () => {
+    const options = getTestOptions();
+    options.stdin.end('{}');
+    const code =
+      await main([...sharedArgs, '--config', configCommentPath], options);
+    assert.strictEqual(options.stderr.read(), null);
+    assert.deepStrictEqual(
+      JSON.parse(options.stdout.read()),
+      {
         'x-transformers': [
           ['sync-transformer'],
           ['async-transformer', 'asyncArg'],

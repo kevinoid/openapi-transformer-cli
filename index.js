@@ -11,6 +11,7 @@ import { load as loadYaml } from 'js-yaml';
 import jsonReplaceExponentials from 'json-replace-exponentials';
 import { createRequire } from 'module';
 import path from 'path';
+import stripJsonComments from 'strip-json-comments';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { debuglog } from 'util';
 
@@ -65,9 +66,10 @@ function readString(stream) {
   });
 }
 
-async function readJson(stream) {
+async function readJson(stream, stripComments) {
   try {
-    const json = await readString(stream);
+    const content = await readString(stream);
+    const json = stripComments ? stripJsonComments(content) : content;
     return JSON.parse(json);
   } catch (err) {
     const filename = stream.path || '-';
@@ -98,7 +100,7 @@ async function readJsonOrYaml(stream, onWarning) {
 }
 
 async function readConfigFile(stream) {
-  const config = await readJson(stream);
+  const config = await readJson(stream, true);
 
   // TODO: Consider using JSON Schema validation
 
