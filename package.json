@@ -5,6 +5,7 @@
   "keywords": [
     "cli",
     "openapi",
+    "openapi-transformer",
     "swagger"
   ],
   "license": "MIT",
