@@ -100,7 +100,7 @@
   "c8": {
     "exclude": [
       "test",
-      "test-lib"
+      "test-root"
     ]
   }
 }

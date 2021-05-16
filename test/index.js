@@ -17,15 +17,15 @@ const { readFile } = fsPromises;
 
 const sharedArgs = ['node', 'openapi-transformer'];
 const asyncPathUrl =
-  new URL('../test-lib/async-transformer.js', import.meta.url);
+  new URL('../test-root/lib/async-transformer.js', import.meta.url);
 const openapiJsonPathUrl =
-  new URL('../test-lib/openapi.json', import.meta.url);
+  new URL('../test-root/lib/openapi.json', import.meta.url);
 const openapiJsonPath = fileURLToPath(openapiJsonPathUrl);
 const openapiYamlPathUrl =
-  new URL('../test-lib/openapi.yaml', import.meta.url);
+  new URL('../test-root/lib/openapi.yaml', import.meta.url);
 const openapiYamlPath = fileURLToPath(openapiYamlPathUrl);
 const syncPathUrl =
-  new URL('../test-lib/sync-transformer.js', import.meta.url);
+  new URL('../test-root/lib/sync-transformer.js', import.meta.url);
 
 // TODO: Load as JSON module once natively supported
 // https://github.com/nodejs/node/issues/37141
@@ -60,6 +60,13 @@ function getTestOptions() {
 }
 
 describe('openapi-transformer-cli', () => {
+  let origCwd;
+  before('chdir(test-root)', () => {
+    origCwd = process.cwd();
+    process.chdir(fileURLToPath(new URL('../test-root', import.meta.url)));
+  });
+  after('restore cwd', () => process.chdir(origCwd));
+
   it('rejects TypeError with no args', () => {
     return assert.rejects(
       () => main(),
