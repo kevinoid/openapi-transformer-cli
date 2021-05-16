@@ -83,8 +83,8 @@ function makeResolver() {
 // https://github.com/browserify/resolve/pull/224
 const resolveTransformer = import.meta.resolve || makeResolver();
 
-async function loadTransformer(name) {
-  const resolved = await resolveTransformer(name);
+async function loadTransformer(name, parent) {
+  const resolved = await resolveTransformer(name, parent);
   // https://github.com/mysticatea/eslint-plugin-node/pull/256
   // eslint-disable-next-line node/no-unsupported-features/es-syntax
   const { default: Transformer } = await import(resolved);
@@ -230,7 +230,10 @@ export default async function openapiTransformerMain(args, options) {
 
   try {
     // Begin loading all transformers early
-    const transformerPs = (argOpts.transformer || []).map(loadTransformer);
+    // Note: To resolve from cwd, use parent file: URL of (dummy) file in cwd
+    const cwdUrl = pathToFileURL(path.resolve('dummy.js')).href;
+    const transformerPs = (argOpts.transformer || [])
+      .map((t) => loadTransformer(t, cwdUrl));
     // Suppress unhandledrejection, which is handled when applied
     for (const transformerP of transformerPs) {
       transformerP.catch(() => {});
