@@ -15,15 +15,7 @@ Transformers](https://github.com/kevinoid/openapi-transformer-base).
 ## Introductory Example
 
 ```sh
-cat >openapi-transformer.json <<'JSON'
-{
-  "transformers": [
-    "@kevinoid/openapi-transformers/pattern-properties-to-additional-properties",
-    "@kevinoid/openapi-transformers/remove-response-headers"
-  ]
-}
-JSON
-openapi-transformer --config openapi-transformer.json <input.json >output.json
+openapi-transformer -t @kevinoid/openapi-transformers/remove-response-headers.js <input.json >output.json
 ```
 
 
@@ -41,13 +33,6 @@ running:
 ```sh
 npm install @kevinoid/openapi-transformer-cli
 ```
-
-
-## Configuration
-
-Configuration files are JSON files which contain a
-[`OpenapiTransformerCliOptions`](https://kevinoid.github.io/openapi-transformer-cli/api/module-openapi-transformer-cli.html#~OpenapiTransformerCliOptions)
-object.
 
 
 ## Contributing

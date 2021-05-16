@@ -1,7 +1,0 @@
-{
-  "transformers": [
-    "./sync-transformer.js",
-    ["./async-transformer.js", "asyncArg"],
-    ["./sync-transformer.js", "syncArg"]
-  ]
-}

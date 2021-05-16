@@ -18,11 +18,6 @@ const { readFile } = fsPromises;
 const sharedArgs = ['node', 'openapi-transformer'];
 const asyncPathUrl =
   new URL('../test-lib/async-transformer.js', import.meta.url);
-const configPathUrl = new URL('../test-lib/config.json', import.meta.url);
-const configPath = fileURLToPath(configPathUrl);
-const configCommentPathUrl =
-  new URL('../test-lib/config-commented.json', import.meta.url);
-const configCommentPath = fileURLToPath(configCommentPathUrl);
 const openapiJsonPathUrl =
   new URL('../test-lib/openapi.json', import.meta.url);
 const openapiJsonPath = fileURLToPath(openapiJsonPathUrl);
@@ -163,7 +158,6 @@ describe('openapi-transformer-cli', () => {
 Transform an OpenAPI document.
 
 Options:
-  -c, --config <file>         JSON configuration file
   -q, --quiet                 Print less output
   -t, --transformer <module>  transformer module to apply (repeatable)
   -v, --verbose               Print more output
@@ -341,11 +335,12 @@ Options:
       `TypeError [ERR_INVALID_MODULE_SPECIFIER]: Invalid module "${
         syncRelPath}" is not a valid package name`,
     ];
-    if (stderrStr === null
-      || !prefixes.some((prefix) => stderrStr.startsWith(prefix))) {
+    assert(stderrStr, 'Expected stderr to not be empty');
+    if (!prefixes.some((prefix) => stderrStr.startsWith(prefix))) {
       throw new AssertionError({
         message: 'Expected stderr to start with a known error message',
         actual: stderrStr,
+        // Note: Must be same type as actual for mocha to show diff
         expected: prefixes.join('\n'),
         operator: 'startsWith',
       });
@@ -410,92 +405,6 @@ Options:
         'x-transformers': [
           ['sync-transformer'],
           ['async-transformer'],
-        ],
-      },
-    );
-    assert.strictEqual(code, 0);
-  });
-
-  it('--config with absolute path', async () => {
-    const options = getTestOptions();
-    options.stdin.end('{}');
-    const code = await main(
-      [...sharedArgs, '--config', configPath],
-      options,
-    );
-    assert.strictEqual(options.stderr.read(), null);
-    assert.deepStrictEqual(
-      JSON.parse(options.stdout.read()),
-      {
-        'x-transformers': [
-          ['sync-transformer'],
-          ['async-transformer', 'asyncArg'],
-          ['sync-transformer', 'syncArg'],
-        ],
-      },
-    );
-    assert.strictEqual(code, 0);
-  });
-
-  it('--config with relative path', async () => {
-    const options = getTestOptions();
-    options.stdin.end('{}');
-    const configRelPath = path.relative(process.cwd(), configPath);
-    const code =
-      await main([...sharedArgs, '--config', configRelPath], options);
-    assert.strictEqual(options.stderr.read(), null);
-    assert.deepStrictEqual(
-      JSON.parse(options.stdout.read()),
-      {
-        'x-transformers': [
-          ['sync-transformer'],
-          ['async-transformer', 'asyncArg'],
-          ['sync-transformer', 'syncArg'],
-        ],
-      },
-    );
-    assert.strictEqual(code, 0);
-  });
-
-  it('--config from stdin', async () => {
-    const options = getTestOptions();
-    options.stdin.end(JSON.stringify({
-      transformers: [
-        syncPathUrl.href,
-        [asyncPathUrl.href, 'asyncArg'],
-        [syncPathUrl.href, 'syncArg'],
-      ],
-    }));
-    const code =
-      await main([...sharedArgs, '--config', '-', openapiJsonPath], options);
-    assert.strictEqual(options.stderr.read(), null);
-    assert.deepStrictEqual(
-      JSON.parse(options.stdout.read()),
-      {
-        ...await openapiJsonPromise,
-        'x-transformers': [
-          ['sync-transformer'],
-          ['async-transformer', 'asyncArg'],
-          ['sync-transformer', 'syncArg'],
-        ],
-      },
-    );
-    assert.strictEqual(code, 0);
-  });
-
-  it('--config with comments', async () => {
-    const options = getTestOptions();
-    options.stdin.end('{}');
-    const code =
-      await main([...sharedArgs, '--config', configCommentPath], options);
-    assert.strictEqual(options.stderr.read(), null);
-    assert.deepStrictEqual(
-      JSON.parse(options.stdout.read()),
-      {
-        'x-transformers': [
-          ['sync-transformer'],
-          ['async-transformer', 'asyncArg'],
-          ['sync-transformer', 'syncArg'],
         ],
       },
     );

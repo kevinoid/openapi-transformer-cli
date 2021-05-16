@@ -1,9 +1,0 @@
-// Config file with comments
-{
-  // Transformers to run
-  "transformers": [
-    "./sync-transformer.js",  // no args
-    ["./async-transformer.js", /* with arg */ "asyncArg"],
-    ["./sync-transformer.js", "syncArg"]
-  ]
-}

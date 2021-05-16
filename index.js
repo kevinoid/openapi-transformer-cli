@@ -11,41 +11,10 @@ import { load as loadYaml } from 'js-yaml';
 import jsonReplaceExponentials from 'json-replace-exponentials';
 import { createRequire } from 'module';
 import path from 'path';
-import stripJsonComments from 'strip-json-comments';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { debuglog } from 'util';
 
 const debug = debuglog('openapi-transformer-cli');
-
-/** OpenAPI Transformer Name and Arguments
- *
- * The module specifier of an OpenAPI Transformer module.  The name will be
- * resolved (using <a
- * href="https://nodejs.org/api/esm.html#esm_import_meta_resolve_specifier_parent"><code>import.meta.resolve()</code></a>
- * with fallback to <a
- * href="https://nodejs.org/api/modules.html#modules_require_resolve_request_options><code>require.resolve()</code></a>)
- * relative to the configuration file and <code>import()</code>ed.  The
- * default export (<code>module.exports</code> for CommonJS) will be called
- * using <code>new</code>.  <code>#transformOpenApi()</code> will be called
- * on the returned value with the document to transform as its only argument.
- * One way to satisfy the requirements is to create a module which
- * default-exports class that extends {@link openapi-transformer-base}.
- *
- * Alternatively, an Array can be used.  In this case, the first element of
- * the array is the name or path, as described above, and any subsequent
- * elements are passed to the constructor (e.g. options).
- *
- * @typedef {string|!Array} OpenapiTransformerNameArgs
- */
-
-/** OpenAPI Transformer CLI Options
- *
- * @typedef {{
- *   transformers: !Array<!OpenapiTransformerNameArgs>=
- * }} OpenapiTransformerCliOptions
- * @property {!Array<OpenapiTransformerNameArgs>=} transformers Array of
- * OpenAPI Transformers to apply, in order of application.
- */
 
 function readString(stream) {
   return new Promise((resolve, reject) => {
@@ -66,10 +35,9 @@ function readString(stream) {
   });
 }
 
-async function readJson(stream, stripComments) {
+async function readJson(stream) {
   try {
-    const content = await readString(stream);
-    const json = stripComments ? stripJsonComments(content) : content;
+    const json = await readString(stream);
     return JSON.parse(json);
   } catch (err) {
     const filename = stream.path || '-';
@@ -99,53 +67,6 @@ async function readJsonOrYaml(stream, onWarning) {
   }
 }
 
-async function readConfigFile(stream) {
-  const config = await readJson(stream, true);
-
-  // TODO: Consider using JSON Schema validation
-
-  if (config === null
-    || typeof config !== 'object'
-    || Array.isArray(config)) {
-    throw new TypeError('config file must contain a JSON object');
-  }
-
-  for (const key of Object.keys(config)) {
-    if (key !== 'transformers') {
-      throw new Error(`unrecognized key '${key}' in config`);
-    }
-  }
-
-  const { transformers } = config;
-  if (transformers !== undefined && !Array.isArray(transformers)) {
-    throw new TypeError('config.transformers must be an Array');
-  }
-
-  for (const transformer of transformers) {
-    if (Array.isArray(transformer)) {
-      if (transformer.length === 0) {
-        throw new Error(
-          'config.transformers tuples must at least 1 element',
-        );
-      }
-
-      if (typeof transformer[0] !== 'string') {
-        throw new TypeError(
-          'config.transformers tuple first item must be a string',
-        );
-      }
-    } else if (typeof transformer !== 'string') {
-      throw new TypeError(
-        'config.transformers items must be strings or Arrays',
-      );
-    }
-  }
-
-  config.configFilePath = stream.path;
-
-  return config;
-}
-
 function makeResolver() {
   const { resolve } = createRequire(import.meta.url);
   return (id, parent) => pathToFileURL(resolve(
@@ -162,31 +83,12 @@ function makeResolver() {
 // https://github.com/browserify/resolve/pull/224
 const resolveTransformer = import.meta.resolve || makeResolver();
 
-function createTransformersForConfig({ configFilePath, transformers }) {
-  const resolveParent =
-    configFilePath ? pathToFileURL(path.resolve(configFilePath)).href
-      : undefined;
-  return transformers.map(async (transformer) => {
-    const [name, ...options] =
-      Array.isArray(transformer) ? transformer : [transformer];
-    const resolved = await resolveTransformer(name, resolveParent);
-    // https://github.com/mysticatea/eslint-plugin-node/pull/256
-    // eslint-disable-next-line node/no-unsupported-features/es-syntax
-    const { default: Transformer } = await import(resolved);
-    return new Transformer(...options);
-  });
-}
-
-async function applyTransformers(configs, openApi) {
-  const transformers =
-    await Promise.all(configs.flatMap(createTransformersForConfig));
-
-  for (const transformer of transformers) {
-    // eslint-disable-next-line no-await-in-loop
-    openApi = await transformer.transformOpenApi(openApi);
-  }
-
-  return openApi;
+async function loadTransformer(name) {
+  const resolved = await resolveTransformer(name);
+  // https://github.com/mysticatea/eslint-plugin-node/pull/256
+  // eslint-disable-next-line node/no-unsupported-features/es-syntax
+  const { default: Transformer } = await import(resolved);
+  return new Transformer();
 }
 
 /** Option parser to count the number of occurrences of the option.
@@ -264,7 +166,6 @@ export default async function openapiTransformerMain(args, options) {
     throw new TypeError('options.stderr must be a stream.Writable');
   }
 
-  const configsOrPromises = [];
   const command = new Command()
     .exitOverride()
     .configureOutput({
@@ -278,26 +179,12 @@ export default async function openapiTransformerMain(args, options) {
     // Workaround https://github.com/tj/commander.js/issues/1493
     .action(() => {})
     .description('Transform an OpenAPI document.')
-    .option('-c, --config <file>', 'JSON configuration file')
-    .on('option:config', (configPath) => {
-      const configStream =
-        configPath === '-' ? options.stdin : createReadStream(configPath);
-      configStream.setEncoding('utf8');
-      configsOrPromises.push(readConfigFile(configStream));
-    })
     .option('-q, --quiet', 'Print less output', countOption)
     .option(
       '-t, --transformer <module>',
       'transformer module to apply (repeatable)',
+      (value, values) => (values ? [...values, value] : [value]),
     )
-    .on('option:transformer', (transformer) => {
-      const lastConfig = configsOrPromises[configsOrPromises.length - 1];
-      if (lastConfig && lastConfig.transformers) {
-        lastConfig.transformers.push(transformer);
-      } else {
-        configsOrPromises.push({ transformers: [transformer] });
-      }
-    })
     .option('-v, --verbose', 'Print more output', countOption)
     // TODO: Replace with .version(packageJson.version) loaded as JSON module
     // https://github.com/nodejs/node/issues/37141
@@ -342,15 +229,33 @@ export default async function openapiTransformerMain(args, options) {
   openApiStream.setEncoding('utf8');
 
   try {
-    const openApi = await readJsonOrYaml(openApiStream, onWarning);
-    const configs = await Promise.all(configsOrPromises);
-    const newOpenApi = await applyTransformers(configs, openApi);
+    // Begin loading all transformers early
+    const transformerPs = (argOpts.transformer || []).map(loadTransformer);
+    // Suppress unhandledrejection, which is handled when applied
+    for (const transformerP of transformerPs) {
+      transformerP.catch(() => {});
+    }
+
+    let openApi = await readJsonOrYaml(openApiStream, onWarning);
+    for (const [i, transformerP] of Object.entries(transformerPs)) {
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        const transformer = await transformerP;
+        // eslint-disable-next-line no-await-in-loop
+        openApi = await transformer.transformOpenApi(openApi);
+      } catch (errTransformer) {
+        errTransformer.message +=
+          ` applying transformer ${argOpts.transformer[i]}`;
+        throw errTransformer;
+      }
+    }
+
     const json =
-      jsonReplaceExponentials(JSON.stringify(newOpenApi, undefined, 2));
+      jsonReplaceExponentials(JSON.stringify(openApi, undefined, 2));
     await streamWrite(options.stdout, `${json}\n`);
     return 0;
   } catch (err) {
-    options.stderr.write(`${err}\n`);
+    options.stderr.write(`${err.stack}\n`);
     return 1;
   }
 }
