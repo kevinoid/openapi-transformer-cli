@@ -36,15 +36,20 @@ const packageJsonPromise =
   readFile(new URL('../package.json', import.meta.url), { encoding: 'utf8' })
     .then(JSON.parse);
 
-/** Convert a file: URL to a module specifier relative to process.cwd()
+/** Convert a file: URL to a module specifier relative to a given directory.
  *
  * @private
  * @param {string} moduleUrl Module file: URL, as a string.
+ * @param {string=} fromUrl Location module specifier is relative to.
+ * (default: process.cwd())
  * @returns {string} Module specifier for moduleUrl relative to process.cwd().
  */
-function toRelativeModSpec(moduleUrl) {
+function toRelativeModSpec(
+  moduleUrl,
+  fromUrl = `${pathToFileURL(process.cwd())}/`,
+) {
   const relUrl = RelateUrl.relate(
-    `${pathToFileURL(process.cwd())}/`,
+    fromUrl,
     moduleUrl,
     { output: RelateUrl.PATH_RELATIVE },
   );
@@ -292,7 +297,7 @@ Options:
     assert.strictEqual(code, 0);
   });
 
-  it('--transformer for sync with relative specifier', async () => {
+  it('--transformer for sync with specifier relative to cwd', async () => {
     const options = getTestOptions();
     options.stdin.end('{}');
     const code = await main(
@@ -309,6 +314,37 @@ Options:
       },
     );
     assert.strictEqual(code, 0);
+  });
+
+  it('--transformer for sync with specifier relative to index.js', async () => {
+    const options = getTestOptions();
+    options.stdin.end('{}');
+    const indexUrl = new URL('../index.js', import.meta.url);
+    const modSpec = toRelativeModSpec(syncPathUrl.href, indexUrl.href);
+    const code = await main(
+      [...sharedArgs, '--transformer', modSpec],
+      options,
+    );
+    const stderrStr = options.stderr.read();
+    const prefixes = [
+      // require.resolve
+      `Error: Cannot find module '${modSpec}'`,
+      // import.meta.resolve
+      `Error [ERR_MODULE_NOT_FOUND]: Cannot find module '${
+        fileURLToPath(new URL(modSpec, `${pathToFileURL(process.cwd())}/`))}'`,
+    ];
+    assert(stderrStr, 'Expected stderr to not be empty');
+    if (!prefixes.some((prefix) => stderrStr.startsWith(prefix))) {
+      throw new AssertionError({
+        message: 'Expected stderr to start with a known error message',
+        actual: stderrStr,
+        // Note: Must be same type as actual for mocha to show diff
+        expected: prefixes.join('\n'),
+        operator: 'startsWith',
+      });
+    }
+    assert.strictEqual(options.stdout.read(), null);
+    assert.strictEqual(code, 1);
   });
 
   // This works with require.resolve everywhere.
@@ -373,7 +409,7 @@ Options:
     assert.strictEqual(code, 0);
   });
 
-  it('--transformer for async with relative specifier', async () => {
+  it('--transformer for async with specifier relative to cwd', async () => {
     const options = getTestOptions();
     options.stdin.end('{}');
     const code = await main(
