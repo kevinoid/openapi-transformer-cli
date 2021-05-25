@@ -180,13 +180,13 @@ export default async function openapiTransformerMain(args, options) {
     // TODO [commander@>=8]: Remove if fixed
     .action(() => {})
     .description('Transform an OpenAPI document.')
-    .option('-q, --quiet', 'Print less output', countOption)
+    .option('-q, --quiet', 'print less output', countOption)
     .option(
       '-t, --transformer <module>',
       'transformer module to apply (repeatable)',
       (value, values) => (values ? [...values, value] : [value]),
     )
-    .option('-v, --verbose', 'Print more output', countOption)
+    .option('-v, --verbose', 'print more output', countOption)
     // TODO: Replace with .version(packageJson.version) loaded as JSON module
     // https://github.com/nodejs/node/issues/37141
     .option('-V, --version', 'output the version number');

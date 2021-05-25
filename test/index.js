@@ -170,9 +170,9 @@ describe('openapi-transformer-cli', () => {
 Transform an OpenAPI document.
 
 Options:
-  -q, --quiet                 Print less output
+  -q, --quiet                 print less output
   -t, --transformer <module>  transformer module to apply (repeatable)
-  -v, --verbose               Print more output
+  -v, --verbose               print more output
   -V, --version               output the version number
   -h, --help                  display help for command
 `,
