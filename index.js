@@ -177,9 +177,6 @@ export default async function openapiTransformerMain(args, options) {
     })
     .arguments('[openapi_file]')
     .allowExcessArguments(false)
-    // Workaround https://github.com/tj/commander.js/issues/1493
-    // TODO [commander@>=8]: Remove if fixed
-    .action(() => {})
     .description('Transform an OpenAPI document.')
     .option('-q, --quiet', 'print less output', countOption)
     .option(
