@@ -4,16 +4,13 @@
  */
 
 import assert, { AssertionError } from 'assert';
-// TODO [engine:node@>=14]: import { readFile } from 'fs/promises'
-import { promises as fsPromises } from 'fs';
+import { readFile } from 'fs/promises';
 import path from 'path';
 import RelateUrl from 'relateurl';
 import { PassThrough } from 'stream';
 import { fileURLToPath, pathToFileURL } from 'url';
 
 import main from '../index.js';
-
-const { readFile } = fsPromises;
 
 const sharedArgs = ['node', 'openapi-transformer'];
 const asyncPathUrl =

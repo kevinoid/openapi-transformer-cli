@@ -5,7 +5,6 @@
  */
 
 import { Command } from 'commander';
-// TODO [engine:node@>=14]: import { readFile } from 'fs/promises'
 import { createReadStream } from 'fs';
 import { load as loadYaml } from 'js-yaml';
 import jsonReplaceExponentials from 'json-replace-exponentials';
