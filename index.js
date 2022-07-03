@@ -5,13 +5,13 @@
  */
 
 import { Command } from 'commander';
-import { createReadStream } from 'fs';
+import { createReadStream } from 'node:fs';
 import { load as loadYaml } from 'js-yaml';
 import jsonReplaceExponentials from 'json-replace-exponentials';
-import { createRequire } from 'module';
-import path from 'path';
-import { fileURLToPath, pathToFileURL } from 'url';
-import { debuglog } from 'util';
+import { createRequire } from 'node:module';
+import path from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { debuglog } from 'node:util';
 
 const debug = debuglog('openapi-transformer-cli');
 

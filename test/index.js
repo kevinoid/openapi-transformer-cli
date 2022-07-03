@@ -3,12 +3,12 @@
  * @license MIT
  */
 
-import assert, { AssertionError } from 'assert';
-import { readFile } from 'fs/promises';
-import path from 'path';
+import assert, { AssertionError } from 'node:assert';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import RelateUrl from 'relateurl';
-import { PassThrough } from 'stream';
-import { fileURLToPath, pathToFileURL } from 'url';
+import { PassThrough } from 'node:stream';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import main from '../index.js';
 
