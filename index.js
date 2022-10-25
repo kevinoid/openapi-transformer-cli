@@ -84,8 +84,6 @@ const resolveTransformer = import.meta.resolve || makeResolver();
 
 async function loadTransformer(name, parent) {
   const resolved = await resolveTransformer(name, parent);
-  // https://github.com/mysticatea/eslint-plugin-node/pull/256
-  // eslint-disable-next-line node/no-unsupported-features/es-syntax
   const { default: Transformer } = await import(resolved);
   return new Transformer();
 }
