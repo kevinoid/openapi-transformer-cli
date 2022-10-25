@@ -24,14 +24,16 @@ const openapiYamlPath = fileURLToPath(openapiYamlPathUrl);
 const syncPathUrl =
   new URL('../test-root/lib/sync-transformer.js', import.meta.url);
 
-// TODO: Load as JSON module once natively supported
-// https://github.com/nodejs/node/issues/37141
-const openapiJsonPromise =
-  readFile(openapiJsonPath, { encoding: 'utf8' })
-    .then(JSON.parse);
-const packageJsonPromise =
-  readFile(new URL('../package.json', import.meta.url), { encoding: 'utf8' })
-    .then(JSON.parse);
+// TODO[engine:node@>=16.15]: Import as JSON module
+// https://nodejs.org/api/esm.html#json-modules
+const openapiJson =
+  JSON.parse(await readFile(openapiJsonPath, { encoding: 'utf8' }));
+const packageJson = JSON.parse(
+  await readFile(
+    new URL('../package.json', import.meta.url),
+    { encoding: 'utf8' },
+  ),
+);
 
 /** Convert a file: URL to a module specifier relative to a given directory.
  *
@@ -180,7 +182,6 @@ Options:
 
   for (const verOption of ['-V', '--version']) {
     it(`writes version to stdout then exit 0 for ${verOption}`, async () => {
-      const packageJson = await packageJsonPromise;
       const options = getTestOptions();
       const code = await main([...sharedArgs, verOption], options);
       assert.strictEqual(code, 0);
@@ -207,7 +208,7 @@ Options:
     assert.strictEqual(options.stderr.read(), null);
     assert.deepStrictEqual(
       JSON.parse(options.stdout.read()),
-      await openapiJsonPromise,
+      openapiJson,
     );
     assert.strictEqual(code, 0);
   });
@@ -227,7 +228,7 @@ Options:
     assert.strictEqual(options.stderr.read(), null);
     assert.deepStrictEqual(
       JSON.parse(options.stdout.read()),
-      await openapiJsonPromise,
+      openapiJson,
     );
     assert.strictEqual(code, 0);
   });
