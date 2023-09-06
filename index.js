@@ -80,7 +80,11 @@ function makeResolver() {
 // Could use resolve, if/when it supports package.json#exports:
 // https://github.com/browserify/resolve/issues/222
 // https://github.com/browserify/resolve/pull/224
-const resolveTransformer = import.meta.resolve || makeResolver();
+//
+// import.meta.resolve() was unflagged without the parentURL argument in
+// Node.js 20.6.0: https://github.com/nodejs/node/pull/49028
+// TODO[engine:node@>=22]: Use import.meta.resolve if it supports parentURL
+const resolveTransformer = makeResolver();
 
 async function loadTransformer(name, parent) {
   const resolved = await resolveTransformer(name, parent);
