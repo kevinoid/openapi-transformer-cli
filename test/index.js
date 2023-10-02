@@ -6,9 +6,10 @@
 import assert, { AssertionError } from 'node:assert';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import RelateUrl from 'relateurl';
 import { PassThrough } from 'node:stream';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+
+import RelateUrl from 'relateurl';
 
 import main from '../index.js';
 

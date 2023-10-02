@@ -4,14 +4,15 @@
  * @module openapi-transformer-cli
  */
 
-import { Command } from 'commander';
 import { createReadStream } from 'node:fs';
-import { load as loadYaml } from 'js-yaml';
-import jsonReplaceExponentials from 'json-replace-exponentials';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { debuglog } from 'node:util';
+
+import { Command } from 'commander';
+import { load as loadYaml } from 'js-yaml';
+import jsonReplaceExponentials from 'json-replace-exponentials';
 
 const debug = debuglog('openapi-transformer-cli');
 
