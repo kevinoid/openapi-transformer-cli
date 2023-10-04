@@ -187,8 +187,13 @@ export default async function openapiTransformerMain(args, options) {
       (value, values) => (values ? [...values, value] : [value]),
     )
     .option('-v, --verbose', 'print more output', countOption)
-    // TODO: Replace with .version(packageJson.version) loaded as JSON module
-    // https://github.com/nodejs/node/issues/37141
+    // TODO: .version(packageJson.version) from JSON import
+    // Requires Node.js ^16.14 || >=17.5:
+    // https://github.com/nodejs/node/pull/41736
+    // https://nodejs.org/api/esm.html#json-modules
+    // Won't be supported by ESLint until proposal reaches Stage 4:
+    // https://github.com/eslint/eslint/issues/15623
+    // https://github.com/tc39/proposal-import-attributes
     .option('-V, --version', 'output the version number')
     // throw exception to stop option parsing early, as commander does
     // (e.g. to avoid failing due to missing required arguments)

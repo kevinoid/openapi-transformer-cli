@@ -25,8 +25,13 @@ const openapiYamlPath = fileURLToPath(openapiYamlPathUrl);
 const syncPathUrl =
   new URL('../test-root/lib/sync-transformer.js', import.meta.url);
 
-// TODO[engine:node@>=16.15]: Import as JSON module
+// TODO: Import as JSON module, once supported
+// Requires Node.js ^16.14 || >=17.5:
+// https://github.com/nodejs/node/pull/41736
 // https://nodejs.org/api/esm.html#json-modules
+// Won't be supported by ESLint until proposal reaches Stage 4:
+// https://github.com/eslint/eslint/issues/15623
+// https://github.com/tc39/proposal-import-attributes
 const openapiJson =
   JSON.parse(await readFile(openapiJsonPath, { encoding: 'utf8' }));
 const packageJson = JSON.parse(
