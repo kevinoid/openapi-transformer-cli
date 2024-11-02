@@ -89,6 +89,7 @@ const resolveTransformer = makeResolver();
 
 async function loadTransformer(name, parent) {
   const resolved = await resolveTransformer(name, parent);
+  debug('resolved transformer %s to %s', name);
   const { default: Transformer } = await import(resolved);
   return new Transformer();
 }
