@@ -73,7 +73,7 @@
     "mocha": "^11.0.1",
     "nodecat": "^2.0.0",
     "relateurl": "^0.2.7",
-    "rimraf": "^5.0.0"
+    "rimraf": "^6.1.2"
   },
   "engines": {
     "node": ">=18",
