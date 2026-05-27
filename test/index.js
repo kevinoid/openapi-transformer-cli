@@ -337,7 +337,7 @@ Options:
       `Error [ERR_MODULE_NOT_FOUND]: Cannot find module '${
         fileURLToPath(new URL(modSpec, `${pathToFileURL(process.cwd())}/`))}'`,
     ];
-    assert(stderrStr, 'Expected stderr to not be empty');
+    assert.ok(stderrStr, 'Expected stderr to not be empty');
     if (!prefixes.some((prefix) => stderrStr.startsWith(prefix))) {
       throw new AssertionError({
         message: 'Expected stderr to start with a known error message',
@@ -382,7 +382,7 @@ Options:
       `TypeError [ERR_INVALID_MODULE_SPECIFIER]: Invalid module "${
         syncRelPath}" is not a valid package name`,
     ];
-    assert(stderrStr, 'Expected stderr to not be empty');
+    assert.ok(stderrStr, 'Expected stderr to not be empty');
     if (!prefixes.some((prefix) => stderrStr.startsWith(prefix))) {
       throw new AssertionError({
         message: 'Expected stderr to start with a known error message',
