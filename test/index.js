@@ -159,7 +159,7 @@ describe('openapi-transformer-cli', () => {
     assert.strictEqual(options.stdout.read(), null);
     assert.strictEqual(
       options.stderr.read(),
-      'error: too many arguments. Expected 1 argument but got 2.\n',
+      'error: too many arguments. Expected 1 argument but got 2: arg1, arg2.\n',
     );
   });
 
