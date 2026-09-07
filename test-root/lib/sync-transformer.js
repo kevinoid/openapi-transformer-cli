@@ -4,7 +4,6 @@
  */
 
 // Dynamically imported from tests
-// eslint-disable-next-line import/no-unused-modules
 export default class SyncTransformer {
   constructor(...args) {
     this.args = args;
