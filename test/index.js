@@ -377,7 +377,7 @@ Options:
       `Error: Cannot find module '${syncRelPath}'`,
       // import.meta.resolve
       `Error [ERR_MODULE_NOT_FOUND]: Cannot find package '${
-        syncRelPath.split('/')[0]}'`,
+        syncRelPath.split('/', 1)[0]}'`,
       // import.meta.resolve on Windows
       `TypeError [ERR_INVALID_MODULE_SPECIFIER]: Invalid module "${
         syncRelPath}" is not a valid package name`,
