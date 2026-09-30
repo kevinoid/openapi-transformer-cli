@@ -249,6 +249,7 @@ export default async function openapiTransformerMain(args, options) {
       .map((t) => loadTransformer(t, cwdUrl));
     // Suppress unhandledrejection, which is handled when applied
     for (const transformerP of transformerPs) {
+      // eslint-disable-next-line unicorn/prefer-await
       transformerP.catch(() => {});
     }
 
