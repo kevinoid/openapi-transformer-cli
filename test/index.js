@@ -338,7 +338,7 @@ Options:
         fileURLToPath(new URL(modSpec, `${pathToFileURL(process.cwd())}/`))}'`,
     ];
     assert.ok(stderrStr, 'Expected stderr to not be empty');
-    if (!prefixes.some((prefix) => stderrStr.startsWith(prefix))) {
+    if (prefixes.every((prefix) => !stderrStr.startsWith(prefix))) {
       throw new AssertionError({
         message: 'Expected stderr to start with a known error message',
         actual: stderrStr,
@@ -383,7 +383,7 @@ Options:
         syncRelPath}" is not a valid package name`,
     ];
     assert.ok(stderrStr, 'Expected stderr to not be empty');
-    if (!prefixes.some((prefix) => stderrStr.startsWith(prefix))) {
+    if (prefixes.every((prefix) => !stderrStr.startsWith(prefix))) {
       throw new AssertionError({
         message: 'Expected stderr to start with a known error message',
         actual: stderrStr,
